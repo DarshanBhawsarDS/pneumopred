@@ -29,6 +29,8 @@ const elements = {
   imagePreview: document.getElementById('imagePreview'),
   btnClearImage: document.getElementById('btnClearImage'),
   previewMeta: document.getElementById('previewMeta'),
+  btnBrowseFile: document.getElementById('btnBrowseFile'),
+  veriCheckpoint: document.getElementById('veriCheckpoint'),
   
   btnSampleNormal: document.getElementById('btnSampleNormal'),
   btnSamplePneumonia: document.getElementById('btnSamplePneumonia'),
@@ -86,7 +88,11 @@ async function checkBackendHealth() {
     elements.statusPill.className = 'status-pill connected';
     
     if (data.model_loaded) {
-      elements.statusText.textContent = `Online (${data.model || 'EfficientNet-B0'})`;
+      elements.statusText.textContent = `Online (${data.model_architecture || data.model || 'EfficientNet-B0'})`;
+      if (elements.veriCheckpoint && data.checkpoint_path) {
+        const parts = data.checkpoint_path.split(/[\\/]/);
+        elements.veriCheckpoint.textContent = `${parts[parts.length - 1]} (Loaded & Active)`;
+      }
     } else {
       elements.statusText.textContent = 'Model Loading / Standby';
     }
@@ -159,6 +165,19 @@ elements.dropzone.addEventListener('drop', (e) => {
 elements.fileInput.addEventListener('change', (e) => {
   if (e.target.files && e.target.files.length > 0) {
     setFile(e.target.files[0]);
+  }
+});
+
+if (elements.btnBrowseFile) {
+  elements.btnBrowseFile.addEventListener('click', (e) => {
+    e.stopPropagation();
+    elements.fileInput.click();
+  });
+}
+
+elements.dropzone.addEventListener('click', (e) => {
+  if (e.target !== elements.btnClearImage && !elements.btnClearImage.contains(e.target)) {
+    elements.fileInput.click();
   }
 });
 

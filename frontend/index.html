@@ -50,7 +50,24 @@
         </svg>
       </div>
       <div class="banner-content">
-        <strong>Academic Research Prototype:</strong> This tool is trained for evaluation and diagnostic assistance. It does not replace clinical radiologist review or clinical decision-making.
+        <strong>Academic Research Prototype:</strong> Trained on chest radiographs. Real EfficientNet-B0 weights loaded. Not for primary clinical diagnostic use.
+      </div>
+    </div>
+
+    <!-- Live ML Model Verification Bar -->
+    <div class="model-verification-bar">
+      <div class="veri-item">
+        <span class="veri-dot"></span>
+        <span class="veri-title">Model:</span>
+        <span class="veri-val">EfficientNet-B0 (4,335,998 Parameters)</span>
+      </div>
+      <div class="veri-item">
+        <span class="veri-title">Checkpoint:</span>
+        <span class="veri-val" id="veriCheckpoint">efficientnet_b0_best.pth (Active)</span>
+      </div>
+      <div class="veri-item">
+        <span class="veri-title">Pipeline:</span>
+        <span class="veri-val">Live PyTorch Tensor Inference + Grad-CAM Saliency</span>
       </div>
     </div>
 
@@ -78,7 +95,15 @@
               </svg>
             </div>
             <p class="drop-text-primary">Drag & drop chest X-ray here, or <span class="highlight-link">browse</span></p>
-            <p class="drop-text-sub">Recommended: Antero-Posterior (AP) or Postero-Anterior (PA) chest view</p>
+            <p class="drop-text-sub">Supports JPEG &amp; PNG radiographs up to 15MB</p>
+            <button type="button" class="btn-browse-file" id="btnBrowseFile">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              Upload Radiograph File
+            </button>
           </div>
 
           <div class="preview-wrapper" id="previewWrapper" style="display: none;">
