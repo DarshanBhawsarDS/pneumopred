@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PneumoPred — Uncertainty-Aware Pneumonia Detection</title>
+  <meta name="description" content="College Research Prototype: Deep Learning Chest Radiograph Pneumonia Detection with Monte Carlo Dropout Uncertainty Quantification and Grad-CAM Explainability." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="app-container">
+    <!-- Navigation Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+            <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+            <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>
+            <path d="M12 9v5"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>PneumoPred <span class="badge-tag">AI Cockpit</span></h1>
+          <p class="brand-sub">Uncertainty-Aware Chest Radiograph Classification &bull; EfficientNet-B0 + Grad-CAM</p>
+        </div>
+      </div>
+
+      <div class="header-status">
+        <div class="status-pill" id="backendStatusPill">
+          <span class="status-dot"></span>
+          <span class="status-label" id="backendStatusText">Connecting to API...</span>
+        </div>
+        <div class="device-pill" id="devicePill" style="display:none;">
+          <span id="deviceText">CPU</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Medical Notice Disclaimer -->
+    <div class="research-banner">
+      <div class="banner-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="banner-content">
+        <strong>Academic Research Prototype:</strong> This tool is trained for evaluation and diagnostic assistance. It does not replace clinical radiologist review or clinical decision-making.
+      </div>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <main class="main-layout">
+      <!-- Left Panel: Radiograph Input & Parameters -->
+      <section class="card panel-input">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <span class="step-num">01</span>
+            <h2>Radiograph Input</h2>
+          </div>
+          <span class="file-spec">JPEG / PNG &bull; Max 15MB</span>
+        </div>
+
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept="image/jpeg,image/png,image/jpg" class="file-input-hidden" />
+          <div class="dropzone-content" id="dropzonePrompt">
+            <div class="upload-icon-wrapper">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="drop-text-primary">Drag & drop chest X-ray here, or <span class="highlight-link">browse</span></p>
+            <p class="drop-text-sub">Recommended: Antero-Posterior (AP) or Postero-Anterior (PA) chest view</p>
+          </div>
+
+          <div class="preview-wrapper" id="previewWrapper" style="display: none;">
+            <img id="imagePreview" alt="Chest Radiograph Preview" />
+            <button type="button" class="btn-clear-image" id="btnClearImage" title="Remove image">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <div class="preview-meta" id="previewMeta">sample.jpg</div>
+          </div>
+        </div>
+
+        <!-- Sample X-Rays Picker -->
+        <div class="samples-section">
+          <label class="section-label">Quick Test Radiographs</label>
+          <div class="sample-chips">
+            <button type="button" class="chip-btn" id="btnSampleNormal">
+              <span class="chip-indicator normal-dot"></span>
+              <span>Sample: Normal Thorax</span>
+            </button>
+            <button type="button" class="chip-btn" id="btnSamplePneumonia">
+              <span class="chip-indicator pneumonia-dot"></span>
+              <span>Sample: Pneumonia (Infiltrate)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Diagnostic Parameters Form -->
+        <div class="params-section">
+          <label class="section-label">Inference & Uncertainty Settings</label>
+          
+          <div class="param-row">
+            <div class="param-info">
+              <span class="param-name">MC Dropout Samples</span>
+              <span class="param-desc">Stochastic passes for epistemic & aleatoric metric calculation</span>
+            </div>
+            <div class="mc-selector">
+              <button type="button" class="mc-btn" data-samples="10">10</button>
+              <button type="button" class="mc-btn active" data-samples="20">20</button>
+              <button type="button" class="mc-btn" data-samples="30">30</button>
+              <button type="button" class="mc-btn" data-samples="50">50</button>
+            </div>
+          </div>
+
+          <div class="param-row">
+            <div class="param-info">
+              <span class="param-name">Grad-CAM Overlay Alpha</span>
+              <span class="param-desc">Transparency blend: <span id="alphaValDisplay" class="value-highlight">0.45</span></span>
+            </div>
+            <input type="range" id="alphaSlider" min="0.1" max="0.9" step="0.05" value="0.45" class="custom-slider" />
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <button type="button" class="btn-primary" id="btnAnalyze" disabled>
+          <span class="btn-spinner" id="btnSpinner" style="display: none;"></span>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+          <span id="btnText">Run Diagnostic Inference</span>
+        </button>
+      </section>
+
+      <!-- Right Panel: Multi-Modal Diagnostics Findings -->
+      <section class="card panel-results">
+        <div class="panel-header">
+          <div class="panel-title-wrap">
+            <span class="step-num">02</span>
+            <h2>Diagnostic Findings & Uncertainty Cockpit</h2>
+          </div>
+          <span class="telemetry-tag" id="inferenceTelemetry">Ready</span>
+        </div>
+
+        <!-- Initial Placeholder State -->
+        <div class="empty-state" id="emptyState">
+          <div class="empty-icon-wrap">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+          </div>
+          <h3>Awaiting Chest Radiograph</h3>
+          <p>Upload a chest X-ray image or click a quick sample on the left to inspect prediction confidence, Monte Carlo dropout uncertainty, and Grad-CAM convolutional saliency.</p>
+        </div>
+
+        <!-- Result Content Container -->
+        <div class="results-content" id="resultsContent" style="display: none;">
+          <!-- Primary Verdict Banner -->
+          <div class="verdict-banner" id="verdictBanner">
+            <div class="verdict-primary">
+              <div class="verdict-label">Predicted Diagnosis</div>
+              <div class="verdict-value" id="verdictValue">PNEUMONIA</div>
+              <div class="verdict-sub" id="verdictSub">High Confidence Model Finding</div>
+            </div>
+            <div class="confidence-circle" id="confidenceCircle">
+              <div class="confidence-percent" id="confidencePercent">98.4%</div>
+              <div class="confidence-label">Confidence</div>
+            </div>
+          </div>
+
+          <!-- Probability Distribution Bars -->
+          <div class="prob-section">
+            <div class="prob-row">
+              <div class="prob-labels">
+                <span class="class-title"><span class="class-dot normal-dot"></span> NORMAL</span>
+                <span class="class-percent" id="probNormalVal">1.6%</span>
+              </div>
+              <div class="prob-track">
+                <div class="prob-fill normal-fill" id="probNormalBar" style="width: 1.6%;"></div>
+              </div>
+            </div>
+
+            <div class="prob-row">
+              <div class="prob-labels">
+                <span class="class-title"><span class="class-dot pneumonia-dot"></span> PNEUMONIA</span>
+                <span class="class-percent" id="probPneumoniaVal">98.4%</span>
+              </div>
+              <div class="prob-track">
+                <div class="prob-fill pneumonia-fill" id="probPneumoniaBar" style="width: 98.4%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grad-CAM Visual Explainability -->
+          <div class="card-inner explain-card">
+            <div class="inner-header">
+              <div class="inner-title">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <h3>Grad-CAM Convolutional Saliency</h3>
+              </div>
+              <div class="view-toggles">
+                <button type="button" class="view-btn active" data-view="overlay">Overlay</button>
+                <button type="button" class="view-btn" data-view="heatmap">Heatmap</button>
+                <button type="button" class="view-btn" data-view="original">Original</button>
+              </div>
+            </div>
+
+            <div class="image-viewer-frame">
+              <img id="gradcamDisplayImg" alt="Grad-CAM Visualization" />
+              <div class="layer-badge">Target: <code id="gradcamTargetLayer">backbone.conv_head</code></div>
+            </div>
+
+            <div class="saliency-explanation" id="saliencyExplanation">
+              Warmer regions (red/yellow) indicate convolutional feature map activations that heavily swayed the EfficientNet-B0 decision.
+            </div>
+          </div>
+
+          <!-- Uncertainty Quantification Grid -->
+          <div class="card-inner uncertainty-card">
+            <div class="inner-header">
+              <div class="inner-title">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                </svg>
+                <h3>Monte Carlo Dropout Uncertainty Analysis</h3>
+              </div>
+              <span class="samples-badge" id="samplesBadge">20 Passes</span>
+            </div>
+
+            <div class="metrics-grid">
+              <div class="metric-box">
+                <div class="metric-top">
+                  <span class="metric-name">Predictive Entropy</span>
+                  <span class="metric-badge" id="entropyBadge">Low</span>
+                </div>
+                <div class="metric-value" id="valEntropy">0.082 <span class="unit">bits</span></div>
+                <div class="metric-help">Total predictive uncertainty (0.00 = certain, 1.00 = max equivocal)</div>
+              </div>
+
+              <div class="metric-box">
+                <div class="metric-top">
+                  <span class="metric-name">Aleatoric (Expected Entropy)</span>
+                </div>
+                <div class="metric-value" id="valAleatoric">0.071 <span class="unit">bits</span></div>
+                <div class="metric-help">Data / image observation noise across stochastic samples</div>
+              </div>
+
+              <div class="metric-box">
+                <div class="metric-top">
+                  <span class="metric-name">Epistemic (Mutual Info)</span>
+                </div>
+                <div class="metric-value" id="valEpistemic">0.011 <span class="unit">bits</span></div>
+                <div class="metric-help">Model parameter variance / knowledge limitation</div>
+              </div>
+            </div>
+
+            <!-- Decision Support Flag -->
+            <div class="decision-support-box" id="decisionSupportBox">
+              <div class="decision-flag" id="decisionFlag">DECISION SUPPORT: CONFIDENT</div>
+              <div class="decision-desc" id="decisionDesc">
+                Entropy is low across Monte Carlo dropout iterations. Model activations are stable.
+              </div>
+            </div>
+          </div>
+
+          <!-- Metadata Telemetry Footer -->
+          <div class="meta-footer">
+            <span id="footerModel">Model: EfficientNet-B0</span>
+            <span id="footerDevice">Device: CPU</span>
+            <span id="footerLatency">Latency: 142ms</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>PneumoPred Uncertainty-Aware Radiograph Classifier &bull; Fast REST API powered by FastAPI &amp; PyTorch &bull; UI via Docker Vite</p>
+    </footer>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

@@ -7,7 +7,7 @@ the research notebook 'ChestXRay_Pneumonia_Detection_v2.ipynb'.
 import os
 from pathlib import Path
 from typing import List, Optional
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 # Base paths
@@ -61,10 +61,11 @@ class Settings(BaseSettings):
     # CORS settings
     CORS_ORIGINS: List[str] = ["*"]
 
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+    )
 
     def resolve_checkpoint_path(self) -> Optional[Path]:
         """Resolve the path to the trained model checkpoint.

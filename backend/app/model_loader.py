@@ -45,14 +45,13 @@ class EfficientNetB0Classifier(nn.Module):
         )
         feat_dim = self.backbone.num_features  # 1280 for EfficientNet-B0
 
-        # Classification Head with dual dropout and SiLU activation
+        # Classification Head matching trained checkpoint weights
         self.classifier = nn.Sequential(
-            nn.BatchNorm1d(feat_dim),
             nn.Dropout(dropout),
-            nn.Linear(feat_dim, 512),
-            nn.SiLU(),  # Matches EfficientNet internal activation
+            nn.Linear(feat_dim, 256),
+            nn.ReLU(),
             nn.Dropout(dropout / 2.0),
-            nn.Linear(512, num_classes)
+            nn.Linear(256, num_classes)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

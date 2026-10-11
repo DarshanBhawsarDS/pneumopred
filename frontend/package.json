@@ -1,0 +1,17 @@
+{
+  "name": "pneumopred-frontend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0"
+  },
+  "dependencies": {
+    "lucide": "^0.344.0"
+  },
+  "devDependencies": {
+    "vite": "^5.1.4"
+  }
+}
