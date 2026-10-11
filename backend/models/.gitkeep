@@ -1,0 +1,2 @@
+# Place trained model checkpoints in this directory:
+# - efficientnet_b0_best.pth
